@@ -1,2 +1,0 @@
-# cyclistic
-Cyclistic Case Study
