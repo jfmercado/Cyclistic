@@ -19,11 +19,10 @@ My objective is to analyze the data to answer three key questions:
 # Environment Set-Up
 
 
-```python
+```
 # Load the packages
 library(tidyverse)
 library(janitor)
-options(dplyr.summarise.inform = FALSE)
 ```
 
 # 1. Collect the data
@@ -31,7 +30,7 @@ options(dplyr.summarise.inform = FALSE)
 We will be using Cyclistic's trip data from January 2023 to Deember 2023.
 
 
-```python
+```
 #Import the data
 Jan2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202301-divvy-tripdata.csv")
 Feb2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202302-divvy-tripdata.csv")
@@ -52,7 +51,7 @@ Dec2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202312-divvy-tripdata.cs
 We must check the structure of each dataframe to ensure consistency before merging
 
 
-```python
+```
 str(Jan2023)
 str(Feb2023)
 str(Mar2023)
@@ -70,9 +69,10 @@ str(Dec2023)
 #### Since all of the columns seem to match in name and datatype, now we merge the dataframes
 
 
-```python
+```
 # Merge dataframes and print
-print(uncleaned_cyclistic_tripdata_2023 <- bind_rows(Jan2023, Feb2023, Mar2023, Apr2023, May2023, Jun2023, Jul2023, Aug2023, Sep2023, Oct2023, Nov2023, Dec2023), n=13)
+print(uncleaned_cyclistic_tripdata_2023 <- bind_rows(Jan2023, Feb2023, Mar2023, Apr2023, May2023, Jun2023, Jul2023,
+  Aug2023, Sep2023, Oct2023, Nov2023, Dec2023), n=13)
 ```
 
 <div class="alert alert-block alert-info">
@@ -84,7 +84,7 @@ print(uncleaned_cyclistic_tripdata_2023 <- bind_rows(Jan2023, Feb2023, Mar2023, 
 # 3. Clean and transform data prior to analysis
 
 
-```python
+```
 # Clean names to remove spaces, parenthesis, camelCase, etc.
 cyclistic_tripdata_2023 <- clean_names(uncleaned_cyclistic_tripdata_2023)
 
@@ -92,11 +92,15 @@ cyclistic_tripdata_2023 <- clean_names(uncleaned_cyclistic_tripdata_2023)
 cyclistic_tripdata_2023 <- distinct(cyclistic_tripdata_2023, ride_id, .keep_all=TRUE)
 
 # Remove rides with any of the following fields missing: ride_id, start_lat, start_lng, end_lat, end_lng, member_casual
-cyclistic_tripdata_2023 <- cyclistic_tripdata_2023[!(is.na(cyclistic_tripdata_2023$ride_id) | is.na(cyclistic_tripdata_2023$start_lat) | 
-                                                       is.na(cyclistic_tripdata_2023$start_lng) | is.na(cyclistic_tripdata_2023$end_lat) | 
-                                                       is.na(cyclistic_tripdata_2023$end_lng) | is.na(cyclistic_tripdata_2023$member_casual)),]
+cyclistic_tripdata_2023 <- cyclistic_tripdata_2023[!(is.na(cyclistic_tripdata_2023$ride_id) |
+                                                    is.na(cyclistic_tripdata_2023$start_lat) |
+                                                    is.na(cyclistic_tripdata_2023$start_lng) |
+                                                    is.na(cyclistic_tripdata_2023$end_lat) | 
+                                                    is.na(cyclistic_tripdata_2023$end_lng) |
+                                                    is.na(cyclistic_tripdata_2023$member_casual)),]
 
-# N.B. Some records are missing station IDs/names because some bikes do not have to be returned to a specific dock and can be locked to any public bike rack. Those rides are still considered good data.
+# N.B. Some records are missing station IDs/names because some bikes do not have to be returned to a specific dock
+# and can be locked to any public bike rack. Those rides are still considered good data.
 
 # Remove empty rows
 drop_na(cyclistic_tripdata_2023)
@@ -109,7 +113,7 @@ drop_na(cyclistic_tripdata_2023)
 #### Next, we will create a few columns that will allow for more granular analysis as well as deeper data cleaning
 
 
-```python
+```
 # Add a ride_length by subtracting started_at column from ended_at column
 cyclistic_tripdata_2023$ride_length <- difftime(cyclistic_tripdata_2023$ended_at, cyclistic_tripdata_2023$started_at)
 
@@ -126,9 +130,10 @@ cyclistic_tripdata_2023$hour <- format(as.POSIXct(cyclistic_tripdata_2023$starte
 #### Using the newly calculated ride_length data, we can remove any rides lasting less than 0 seconds, which are obviously bad data, and any rides lasting longer than 24 hours, which are assumed to have been stolen or lost
 
 
-```python
+```
 # Include only rides that are greater than 0 seconds and less than 24 hours
-cyclistic_tripdata_2023 <- cyclistic_tripdata_2023[!(cyclistic_tripdata_2023$ride_length <= 0 | cyclistic_tripdata_2023$ride_length > 86400),]
+cyclistic_tripdata_2023 <- cyclistic_tripdata_2023[!(cyclistic_tripdata_2023$ride_length <= 0 |
+                                                    cyclistic_tripdata_2023$ride_length > 86400),]
 ```
 
 <div class="alert alert-block alert-info">
@@ -139,34 +144,69 @@ cyclistic_tripdata_2023 <- cyclistic_tripdata_2023[!(cyclistic_tripdata_2023$rid
 
 #### Now that our data is sufficiently cleaned and prepared for analysis, we can compare the mean, median, max, and min of the rides by customer type (all units are seconds)
 
-
-```python
+```
 # Calculate the mean, median, max, and min rides by customer type
 aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = mean)
 aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = median)
 aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = max)
 aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = min)
 ```
+|Customer Type|Average Ride Length|
+|-|-|
+|casual|1231.7166 secs|
+|member|723.1677 secs|
+
+|Customer Type|Median Ride Length|
+|-|-|
+|casual|709 secs|
+|member|511 secs|
+
+|Customer Type|Max Ride Length|
+|-|-|
+|casual|86261 secs|
+|member|86392 secs|
+
+|Customer Type|Min Ride Length|
+|-|-|
+|casual|1 secs|
+|member|1 secs|
+
 
 #### We can see that casual riders go for longer rides on average than annual members. Nearly twice as long.We can also confirm that all rides fall between 0 seconds and 24 hours.
 
 #### Next, we'll dive deeper into that data by comparing the number of rides as well as the average length of rides taken by customer type AND day of the week.
 
 
-```python
-# Aggregate the average length and number of rides by the day of the week as well as by the customer type and then sort by weekday
+```
+# Aggregate the average length and number of rides by the day of the week and by the customer type
 cyclistic_tripdata_2023 %>% 
   mutate(weekday = wday(started_at, label = TRUE)) %>%
   group_by(member_casual, weekday) %>%
   summarise(number_of_rides = n()
-            ,average_duration = mean(ride_length), .groups = NULL) %>%
+            ,average_duration = round(mean(ride_length), .groups = NULL)) %>%
   arrange(weekday)
 ```
+|member_casual|weekday|number_of_rides|average_duration|
+|-|-|-|-|
+|casual|Sun|334,393|1434.0|
+|member|Sun|408,612|806.0|
+|casual|Mon|234,118|1213.0|
+|member|Mon|494,328|687.0|
+|casual|Tue|245,529|1102.0|
+|member|Tue|576,459|695.0|
+|casual|Wed|248,479|1055.0|
+|member|Wed|586,189|690.0|
+|casual|Thu|269,828|1075.0|
+|member|Thu|589,309|694.0|
+|casual|Fri|310,965|1195.0|
+|member|Fri|531,327|719.0|
+|casual|Sat|409,275|1393.0|
+|member|Sat|472,588|804.0|
 
 #### It looks like casual riders tend to ride more often on weekends, while annual members tend to see ride usage spike in the middle of the week. Let's visualize that same data using ggplot.
 
 
-```python
+```
 # Number of rides visualization
 cyclistic_tripdata_2023 %>% 
   mutate(weekday = wday(started_at, label = TRUE)) %>% 
@@ -199,16 +239,16 @@ We can also see that **annual members** spend a fairly similar amount of time pe
 We could generate even more visualizations using ggplot, but it would be much more efficient to output the dataframe for analysis using a more powerful viz tool like Tableau.
 
 
-```python
+```
 #Export to CSV
 write.csv(cyclistic_tripdata_2023, file = 'cyclistic_tripdata_2023.csv')
 ```
 
 # 6. Tableau Visualizations
 
-Now that we've migrated our data from RStudio to Tableau, we can create cleaner and more descriptive visualizations. I've compiled all of the above viz data into an interactive [dashboard](https://public.tableau.com/app/profile/joshua.mercado2815/viz/CyclisticCaseStudy_17138915127790/CyclisticBikeshareDatabyCustomerType2023) that allows users to highlight the data by customer type:
+Now that we've migrated our data from RStudio to Tableau, we can create cleaner and more descriptive visualizations. I've compiled all of the viz data into an interactive [dashboard](https://public.tableau.com/app/profile/joshua.mercado2815/viz/CyclisticCaseStudy_17138915127790/CyclisticBikeshareDatabyCustomerType2023) that allows users to highlight the data by customer type:
 
-<div class='tableauPlaceholder' id='viz1715283208917' style='position: relative'><noscript><a href='#'><img alt='Cyclistic Bikeshare Data by Customer Type 2023 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /><param name='filter' value='publish=yes' /></object></div>                <script type='text/javascript'>                    var divElement = document.getElementById('viz1715283208917');                    var vizElement = divElement.getElementsByTagName('object')[0];                    if ( divElement.offsetWidth > 800 ) { vizElement.style.width='800px';vizElement.style.height='827px';} else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='800px';vizElement.style.height='827px';} else { vizElement.style.width='100%';vizElement.style.height='1827px';}                     var scriptElement = document.createElement('script');                    scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    vizElement.parentNode.insertBefore(scriptElement, vizElement);                </script>
+<div class='tableauPlaceholder' id='viz1715283208917' style='position: relative'><noscript><a href='#'><img alt='Cyclistic Bikeshare Data by Customer Type 2023 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /><param name='filter' value='publish=yes' /></object></div>
 
 ## Key Metrics: Total Rides, Average Ride Length, and Total Ride Length
 
@@ -230,7 +270,7 @@ The hourly data from the weekends show that **annual members** spend pretty much
 
 The hourly data from weekdays shows extremely clear peaks during the traditional "rush hour" periods, which all but confirms *a significant percentage of annual members draw their value from being able to use Cyclistic bikes for commuting purposes*.
 
-# 6. Conclusion
+# 7. Conclusion
 
 ### As a reminder, the business task was to answer three specific questions:
 
@@ -249,7 +289,11 @@ The hourly data from weekdays shows extremely clear peaks during the traditional
 
 **Why would casual riders buy Cyclistic annual memberships?**
 
-The easier question to ask is why wouldn't a casual rider buy a Cyclistic annual membership? The simple answer is value. We can infer that many casual rides are taken by tourists or infrequent sightseers, and are therefore very unlikely to glean value from an annual membership. The casual riders that would make up the target segment for annual memberships are customers whose behavior mimics all or even part of the behavior of annual members: purpose driven, frequent rides between regular docking stations, including frequent rides during peak commuting times. Without individual user data, it is hard for me to identify that customer segment, but if I were working for the real life company with access to that data, then it would be a simple matter of isolating the top percentage of casual riders that match any aspect of that behavior.
+The easier question to ask is why wouldn't a casual rider buy a Cyclistic annual membership? The simple answer is value. We can infer that many casual rides are taken by tourists or infrequent sightseers, and are therefore very unlikely to glean value from an annual membership. 
+
+The casual riders that would make up the target segment for annual memberships are customers whose behavior mimics all or even part of the behavior of annual members: purpose driven, frequent rides between regular docking stations, including frequent rides during peak commuting times.
+
+Without individual user data, it is hard to identify that customer segment, but if I were working for the real life company with access to that data, then it would be a simple matter of isolating the top percentage of casual riders that match any aspect of that behavior.
 
 **How can Cyclistic use digital media to influence casual riders to become members?**
 
@@ -262,4 +306,3 @@ Digital media is an incredibly powerful marketing tool when combined with high l
 * considering me for a job position (thank you again for your time and consideration)
 * my mom, incredibly proud of her son's work (whether it be macaroni art or data analysis)
 * super interested in Chicago bikeshare data and/or data cleaning! (cool!)
-
