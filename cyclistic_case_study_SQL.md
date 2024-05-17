@@ -2,7 +2,7 @@
 
 Prepared by Joshua Mercado on 04/25/2024
 
-The following report utilizes SQL. Another version of the case study utilizing R for the data cleaning is also available under cyclistic_casestudy_R.md.
+The following report utilizes SQL (BigQuery). Another version of the case study utilizing R for the data cleaning is also available under cyclistic_casestudy_R.md.
 
 # Introduction
 
@@ -18,197 +18,221 @@ My objective is to analyze the data to answer three key questions:
 2. Why would casual riders buy Cyclistic annual memberships?
 3. How can Cyclistic use digital media to influence casual riders to become members?
 
-# Environment Set-Up
-
-
-```
-# Load the packages
-library(tidyverse)
-library(janitor)
-options(dplyr.summarise.inform = FALSE)
-```
-
 # 1. Collect the data
 
-We will be using Cyclistic's trip data from January 2023 to Deember 2023.
+We will be using Cyclistic's trip data from January 2023 to December 2023. Using Google BigQuery, the project name and dataset prefix for tables is "cyclistic-case-study-422918.divvy_2023".
 
+Upload each month of trip data as its own table using an easier naming convention.
 
-```
-#Import the data
-Jan2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202301-divvy-tripdata.csv")
-Feb2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202302-divvy-tripdata.csv")
-Mar2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202303-divvy-tripdata.csv")
-Apr2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202304-divvy-tripdata.csv")
-May2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202305-divvy-tripdata.csv")
-Jun2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202306-divvy-tripdata.csv")
-Jul2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202307-divvy-tripdata.csv")
-Aug2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202308-divvy-tripdata.csv")
-Sep2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202309-divvy-tripdata.csv")
-Oct2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202310-divvy-tripdata.csv")
-Nov2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202311-divvy-tripdata.csv")
-Dec2023 <- read_csv("/kaggle/input/divvy-trip-data-2023/202312-divvy-tripdata.csv")
-```
+jan2023 <- 202301-divvy-tripdata.csv
+feb2023 <- 202302-divvy-tripdata.csv
+mar2023 <- 202303-divvy-tripdata.csv
+apr2023 <- 202304-divvy-tripdata.csv
+may2023 <- 202305-divvy-tripdata.csv
+jun2023 <- 202306-divvy-tripdata.csv
+jul2023 <- 202307-divvy-tripdata.csv
+aug2023 <- 202308-divvy-tripdata.csv
+sep2023 <- 202309-divvy-tripdata.csv
+oct2023 <- 202310-divvy-tripdata.csv
+nov2023 <- 202311-divvy-tripdata.csv
+dec2023 <- 202312-divvy-tripdata.csv
 
 # 2. Wrangle the data and combine into a single file
 
-We must check the structure of each dataframe to ensure consistency before merging
+First, we must check the schema of each table to ensure consistency before merging
 
+![Screen Shot 2024-05-15 at 1 43 07 PM](https://github.com/jfmercado/Cyclistic/assets/25253461/0c2e28ec-4856-4dc8-83b7-5f9a972ec281)
 
-```
-str(Jan2023)
-str(Feb2023)
-str(Mar2023)
-str(Apr2023)
-str(May2023)
-str(Jun2023)
-str(Jul2023)
-str(Aug2023)
-str(Sep2023)
-str(Oct2023)
-str(Nov2023)
-str(Dec2023)
-```
+#### Since all of the tables have the same number of columns as well as matching names and datatypes, we can now merge the tables using the UNION ALL operator into a single table
 
-#### Since all of the columns seem to match in name and datatype, now we merge the dataframes
-
+The UNION ALL operator allows us to merge the columns rather than creating new columns for each added table. We will create a new table called tripdata_2023 which will contain all of the merged tables.
 
 ```
-# Merge dataframes and print
-print(uncleaned_cyclistic_tripdata_2023 <- bind_rows(Jan2023, Feb2023, Mar2023, Apr2023, May2023, Jun2023, Jul2023, Aug2023, Sep2023, Oct2023, Nov2023, Dec2023), n=13)
+DROP TABLE IF EXISTS `cyclistic-case-study-422918.divvy_2023.tripdata_2023`;
+
+CREATE TABLE IF NOT EXISTS`cyclistic-case-study-422918.divvy_2023.tripdata_2023` AS
+  SELECT * FROM (
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.jan2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.feb2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.mar2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.apr2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.may2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.jun2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.jul2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.aug2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.sep2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.oct2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.nov2023`
+    UNION ALL
+    SELECT * FROM `cyclistic-case-study-422918.divvy_2023.dec2023`
+);
+
+SELECT COUNT(*)
+  FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`;
 ```
 
 <div class="alert alert-block alert-info">
 5,719,877 rows returned
 </div>
 
-
-
-# 3. Clean and transform data prior to analysis
-
+# 3. Explore data
 
 ```
-# Clean names to remove spaces, parenthesis, camelCase, etc.
-cyclistic_tripdata_2023 <- clean_names(uncleaned_cyclistic_tripdata_2023)
+# Check for duplicate records based on ride_id
+SELECT COUNT(ride_id) - COUNT(DISTINCT ride_id) AS duplicate_rows
+FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`;
+```
+<div class="alert alert-block alert-info">
+duplicate_rows: 0
+</div>
 
-# Remove duplicate records based on ride_id
-cyclistic_tripdata_2023 <- distinct(cyclistic_tripdata_2023, ride_id, .keep_all=TRUE)
-
-# Remove rides with any of the following fields missing: ride_id, start_lat, start_lng, end_lat, end_lng, member_casual
-cyclistic_tripdata_2023 <- cyclistic_tripdata_2023[!(is.na(cyclistic_tripdata_2023$ride_id) | is.na(cyclistic_tripdata_2023$start_lat) | 
-                                                       is.na(cyclistic_tripdata_2023$start_lng) | is.na(cyclistic_tripdata_2023$end_lat) | 
-                                                       is.na(cyclistic_tripdata_2023$end_lng) | is.na(cyclistic_tripdata_2023$member_casual)),]
+```
+# Check for rides with any of the following fields missing: ride_id, start_lat, start_lng, end_lat, end_lng, member_casual
+SELECT COUNT(*) - COUNT(ride_id) ride_id,
+ COUNT(*) - COUNT(started_at) started_at,
+ COUNT(*) - COUNT(ended_at) ended_at,
+ COUNT(*) - COUNT(start_lat) start_lat,
+ COUNT(*) - COUNT(start_lng) start_lng,
+ COUNT(*) - COUNT(end_lat) end_lat,
+ COUNT(*) - COUNT(end_lng) end_lng,
+ COUNT(*) - COUNT(member_casual) member_casual
+FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`;
 
 # N.B. Some records are missing station IDs/names because some bikes do not have to be returned to a specific dock and can be locked to any public bike rack. Those rides are still considered good data.
-
-# Remove empty rows
-drop_na(cyclistic_tripdata_2023)
 ```
+|ride_id|started_at|ended_at|start_lat|start_lng|end_lat|end_lng|member_casual|
+|-|-|-|-|-|-|-|-|
+|0|0|0|0|0|6990|6,990|0|
 
+```
+# Check for rides that are longer than 24 hours, which are assumed to have been stolen or lost
+SELECT COUNT(*) AS longer_than_a_day
+FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`
+WHERE (TIMESTAMP_DIFF(ended_at, started_at, SECOND)) > 86400;
+```
 <div class="alert alert-block alert-info">
-6,990 rows removed, 5,712,887 rows remaining
+longer_than_a_day: 6,418
 </div>
 
-#### Next, we will create a few columns that will allow for more granular analysis as well as deeper data cleaning
-
-
-```python
-# Add a ride_length by subtracting started_at column from ended_at column
-cyclistic_tripdata_2023$ride_length <- difftime(cyclistic_tripdata_2023$ended_at, cyclistic_tripdata_2023$started_at)
-
-# Add a day of the week column using the wday() function on the started_at column
-cyclistic_tripdata_2023$day_of_week <- format(as.Date(cyclistic_tripdata_2023$started_at), "%a")
-
-# Add a month column by extracting the month from the started_at column
-cyclistic_tripdata_2023$month <- format(as.Date(cyclistic_tripdata_2023$started_at), "%B")
-
-# Add an hour column by extracting the hour from the started_at column
-cyclistic_tripdata_2023$hour <- format(as.POSIXct(cyclistic_tripdata_2023$started_at), "%H")
 ```
-
-#### Using the newly calculated ride_length data, we can remove any rides lasting less than 0 seconds, which are obviously bad data, and any rides lasting longer than 24 hours, which are assumed to have been stolen or lost
-
-
-```python
-# Include only rides that are greater than 0 seconds and less than 24 hours
-cyclistic_tripdata_2023 <- cyclistic_tripdata_2023[!(cyclistic_tripdata_2023$ride_length <= 0 | cyclistic_tripdata_2023$ride_length > 86400),]
+# Check for rides that are shorter than 1 second, which are obviously bad data
+SELECT COUNT(*) AS less_than_a_second
+FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`
+WHERE (TIMESTAMP_DIFF(ended_at, started_at, SECOND)) < 1;
 ```
-
 <div class="alert alert-block alert-info">
-1,488 rows removed, 5,711,399 rows remaining
+less_than_a_second: 1,269
 </div>
 
-# 4. Descriptive Analysis
+### So after exploring our data a bit, we have some cleaning to do. There are no duplicate ride IDs which is great, but there are 6990 rides without ending GPS information, which we will assume are bad data. There are also 6,418 rides that lasted longer than 24 hours and 1,269 rides that were less than a second long, so we must eliminate those rides as well. Some of the bad ride_length rides might overlap with the rides that have bad ending GPS information.
 
-#### Now that our data is sufficiently cleaned and prepared for analysis, we can compare the mean, median, max, and min of the rides by customer type (all units are seconds)
+# 4. Clean and transform data
 
+We will create a new table for the cleaned table since we don't want to use destructive commands on the original dataset. We will also create a few columns that will allow for more granular analysis as well as deeper data cleaning.
 
-```python
-# Calculate the mean, median, max, and min rides by customer type
-aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = mean)
-aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = median)
-aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = max)
-aggregate(cyclistic_tripdata_2023$ride_length ~ cyclistic_tripdata_2023$member_casual, FUN = min)
 ```
+DROP TABLE IF EXISTS `cyclistic-case-study-422918.divvy_2023.cleaned_tripdata_2023`;
+
+CREATE TABLE IF NOT EXISTS `cyclistic-case-study-422918.divvy_2023.cleaned_tripdata_2023` AS (
+  SELECT 
+    a.ride_id, rideable_type, started_at, ended_at, start_station_name, 
+    end_station_name, start_lat, start_lng, end_lat, end_lng, member_casual, ride_length,
+    EXTRACT(DAYOFWEEK FROM started_at) AS day_of_week, -- create a day_of_week column
+    EXTRACT(MONTH FROM started_at) AS month, -- create a month column 
+    EXTRACT(HOUR FROM started_at) AS hour -- create an hour column
+  FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023` a
+  JOIN ( -- create a ride_length column
+    SELECT ride_id, (
+      TIMESTAMP_DIFF(ended_at, started_at, SECOND)) AS ride_length,
+    FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`
+  ) b 
+  ON a.ride_id = b.ride_id
+  WHERE 
+    a.ride_id IS NOT NULL AND -- filter out rides missing crucial data
+    start_lat IS NOT NULL AND
+    start_lng IS NOT NULL AND
+    end_lat IS NOT NULL AND
+    end_lng IS NOT NULL AND
+    member_casual IS NOT NULL AND
+    ride_length > 0 AND ride_length < 86400 -- filter out rides shorter than 1 second and longer than 24 hours
+);
+
+SELECT COUNT(*) AS total_rides
+FROM `cyclistic-case-study-422918.divvy_2023.cleaned_tripdata_2023`;
+```
+<div class="alert alert-block alert-info">
+total_rides: 5,711,399
+8,478 rows removed
+</div>
+
+# 4. Analyze data
+
+#### Now that our data is sufficiently cleaned and prepared for analysis, we can compare the total, mean, max, and min of the rides by customer type (all units are seconds)
+
+```
+SELECT member_casual,
+  COUNT(ride_id) AS total_rides,
+  ROUND(AVG(ride_length)) AS average_ride_length,
+  MAX(ride_length) AS max_ride_length,
+  MIN(ride_length) AS min_ride_length
+FROM `cyclistic-case-study-422918.divvy_2023.cleaned_tripdata_2023`
+GROUP BY member_casual
+ORDER BY member_casual;
+```
+|member_casual|total_rides|average_ride_length|max_ride_length|min_ride_length|
+|-|-|-|-|-|
+|casual|2052587|1232.0|86261|1|
+|member|3658812|723.0|86392|1|
 
 #### We can see that casual riders go for longer rides on average than annual members. Nearly twice as long.We can also confirm that all rides fall between 0 seconds and 24 hours.
 
 #### Next, we'll dive deeper into that data by comparing the number of rides as well as the average length of rides taken by customer type AND day of the week.
 
-
-```python
+```
 # Aggregate the average length and number of rides by the day of the week as well as by the customer type and then sort by weekday
-cyclistic_tripdata_2023 %>% 
-  mutate(weekday = wday(started_at, label = TRUE)) %>%
-  group_by(member_casual, weekday) %>%
-  summarise(number_of_rides = n()
-            ,average_duration = mean(ride_length), .groups = NULL) %>%
-  arrange(weekday)
+SELECT day_of_week, member_casual, COUNT(ride_id) AS total_trips, ROUND(AVG(ride_length)) AS average_ride_length
+FROM `cyclistic-case-study-422918.divvy_2023.cleaned_tripdata_2023`
+GROUP BY day_of_week, member_casual
+ORDER BY day_of_week, member_casual;
 ```
+|day_of_week|member_casual|total_trips|average_ride_length|
+|-|-|-|-|
+|1|casual|334393|1434.0|
+|1|member|408612|806.0|
+|2|casual|234118|1213.0|
+|2|member|494328|687.0|
+|3|casual|245529|1102.0|
+|3|member|576459|695.0|
+|4|casual|248479|1055.0|
+|4|member|586189|690.0|
+|5|casual|269828|1075.0|
+|5|member|589309|694.0|
+|6|casual|310965|1195.0|
+|6|member|531327|719.0|
+|7|casual|409275|1393.0|
+|7|member|472588|804.0|
 
-#### It looks like casual riders tend to ride more often on weekends, while annual members tend to see ride usage spike in the middle of the week. Let's visualize that same data using ggplot.
-
-
-```python
-# Number of rides visualization
-cyclistic_tripdata_2023 %>% 
-  mutate(weekday = wday(started_at, label = TRUE)) %>% 
-  group_by(member_casual, weekday) %>% 
-  summarise(number_of_rides = n()
-            ,average_duration = mean(as.numeric(ride_length))) %>% 
-  arrange(member_casual, weekday)  %>% 
-  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
-  geom_col(position = "dodge")
-
-# Average ride length visualization
-cyclistic_tripdata_2023 %>% 
-  mutate(weekday = wday(started_at, label = TRUE)) %>% 
-  group_by(member_casual, weekday) %>% 
-  summarise(number_of_rides = n()
-            ,average_duration = mean(as.numeric(ride_length))) %>% 
-  arrange(member_casual, weekday)  %>% 
-  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
-  geom_col(position = "dodge")
-```
-
-### From the graph, we can make several more observations:
+#### It looks like casual riders tend to ride more often on weekends, while annual members tend to see ride usage spike in the middle of the week. Diving deeper into the data, we can make several more observations:
 
 It seems that **casual rider** usage steadily increases from Monday until the weekend, suggesting that *casual rides are not generally being used for commuting purposes*. At the same time, **annual member** usage spikes in the middle of the week with weekends being the least utilized days, suggesting *strong commuter usage of bikes by annual members*.
 
 We can also see that **annual members** spend a fairly similar amount of time per ride on average regardless of the day, with slight spikes on the weekends. **Casual riders** have sharp spikes in average ride duration on the weekend. Even on their lowest average ride duration day (Wednesday), casual riders still spend significantly more average time on each ride than annual members, further suggesting that *casual riders are using the bikes for leisure rides as opposed to annual members, who could be using the bikes for purposeful A to B trips like commutes.*
 
-# 5. Export data for further visualization analysis
+#### We could continue querying for more insights, but without specific directives, it might be a better use of our time to switch over to a powerful visualization tool like Tableau for general data exploration.
 
-We could generate even more visualizations using ggplot, but it would be much more efficient to output the dataframe for analysis using a more powerful viz tool like Tableau.
+# 5. Tableau Visualizations
 
-
-```python
-#Export to CSV
-write.csv(cyclistic_tripdata_2023, file = 'cyclistic_tripdata_2023.csv')
-```
-
-# 6. Tableau Visualizations
-
-Now that we've migrated our data from RStudio to Tableau, we can create cleaner and more descriptive visualizations. I've compiled all of the above viz data into an interactive [dashboard](https://public.tableau.com/app/profile/joshua.mercado2815/viz/CyclisticCaseStudy_17138915127790/CyclisticBikeshareDatabyCustomerType2023) that allows users to highlight the data by customer type:
+Now that we've migrated our data to Tableau, we can create cleaner and more descriptive visualizations. I've compiled all of the above viz data into an interactive [dashboard](https://public.tableau.com/app/profile/joshua.mercado2815/viz/CyclisticCaseStudy_17138915127790/CyclisticBikeshareDatabyCustomerType2023) that allows users to highlight the data by customer type:
 
 <div class='tableauPlaceholder' id='viz1715283208917' style='position: relative'><noscript><a href='#'><img alt='Cyclistic Bikeshare Data by Customer Type 2023 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /><param name='filter' value='publish=yes' /></object></div>                <script type='text/javascript'>                    var divElement = document.getElementById('viz1715283208917');                    var vizElement = divElement.getElementsByTagName('object')[0];                    if ( divElement.offsetWidth > 800 ) { vizElement.style.width='800px';vizElement.style.height='827px';} else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='800px';vizElement.style.height='827px';} else { vizElement.style.width='100%';vizElement.style.height='1827px';}                     var scriptElement = document.createElement('script');                    scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    vizElement.parentNode.insertBefore(scriptElement, vizElement);                </script>
 
@@ -232,7 +256,7 @@ The hourly data from the weekends show that **annual members** spend pretty much
 
 The hourly data from weekdays shows extremely clear peaks during the traditional "rush hour" periods, which all but confirms *a significant percentage of annual members draw their value from being able to use Cyclistic bikes for commuting purposes*.
 
-# 6. Conclusion
+# 7. Conclusion
 
 ### As a reminder, the business task was to answer three specific questions:
 
