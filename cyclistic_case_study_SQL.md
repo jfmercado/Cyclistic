@@ -1,5 +1,3 @@
-<a href="https://www.kaggle.com/code/jfmercado/cyclistic-case-study?scriptVersionId=176274764" target="_blank"><img align="left" alt="Kaggle" title="Open in Kaggle" src="https://kaggle.com/static/images/open-in-kaggle.svg"></a>
-
 Prepared by Joshua Mercado on 04/25/2024
 
 The following report utilizes SQL (BigQuery). Another version of the case study utilizing R for the data cleaning is also available under cyclistic_casestudy_R.md.
@@ -10,7 +8,7 @@ This sample case study was provided through the Google Data Analytics Profession
 
 ## Scenario
 
-Cyclistic is a (fictional) bikeshare company in Chicago with two types of customers: **annual members** that pay an annual fee for unlimited rides throughout the year and **casual riders** who pay either per ride or per day. The Cyclistic marketing analytics team is looking to convert casual riders into annual members as the latter are deemed to be much more profitable and they believe that converting casual riders is a better strategy than targeting all-new customers.
+Cyclistic is a (fictional) bikeshare company in Chicago with two types of customers: **annual members** that pay an annual fee for unlimited rides throughout the year and **casual riders** who pay either per ride or per day. The Cyclistic marketing analytics team is looking to convert casual riders into annual members as the latter are deemed to be much more profitable.
 
 My objective is to analyze the data to answer three key questions:
 
@@ -24,6 +22,9 @@ We will be using Cyclistic's trip data from January 2023 to December 2023. Using
 
 Upload each month of trip data as its own table using an easier naming convention.
 
+```
+# Not actual code, just the naming convention
+
 jan2023 <- 202301-divvy-tripdata.csv
 feb2023 <- 202302-divvy-tripdata.csv
 mar2023 <- 202303-divvy-tripdata.csv
@@ -36,6 +37,7 @@ sep2023 <- 202309-divvy-tripdata.csv
 oct2023 <- 202310-divvy-tripdata.csv
 nov2023 <- 202311-divvy-tripdata.csv
 dec2023 <- 202312-divvy-tripdata.csv
+```
 
 # 2. Wrangle the data and combine into a single file
 
@@ -77,27 +79,29 @@ CREATE TABLE IF NOT EXISTS`cyclistic-case-study-422918.divvy_2023.tripdata_2023`
     SELECT * FROM `cyclistic-case-study-422918.divvy_2023.dec2023`
 );
 
-SELECT COUNT(*)
+SELECT COUNT(*) AS total_rides
   FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`;
 ```
+|total_rides|
+|-|
+|5,719,877|
 
-<div class="alert alert-block alert-info">
-5,719,877 rows returned
-</div>
 
 # 3. Explore data
 
 ```
 # Check for duplicate records based on ride_id
+
 SELECT COUNT(ride_id) - COUNT(DISTINCT ride_id) AS duplicate_rows
 FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`;
 ```
-<div class="alert alert-block alert-info">
-duplicate_rows: 0
-</div>
+|duplicate_rows|
+|-|
+|0|
 
 ```
-# Check for rides with any of the following fields missing: ride_id, start_lat, start_lng, end_lat, end_lng, member_casual
+# Check for rides with missing, crucial data
+
 SELECT COUNT(*) - COUNT(ride_id) ride_id,
  COUNT(*) - COUNT(started_at) started_at,
  COUNT(*) - COUNT(ended_at) ended_at,
@@ -108,33 +112,36 @@ SELECT COUNT(*) - COUNT(ride_id) ride_id,
  COUNT(*) - COUNT(member_casual) member_casual
 FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`;
 
-# N.B. Some records are missing station IDs/names because some bikes do not have to be returned to a specific dock and can be locked to any public bike rack. Those rides are still considered good data.
+# N.B. Some records are missing station IDs/names because some bikes do not have to be returned to a specific dock
+and can be locked to any public bike rack. Those rides are still considered good data.
 ```
 |ride_id|started_at|ended_at|start_lat|start_lng|end_lat|end_lng|member_casual|
 |-|-|-|-|-|-|-|-|
-|0|0|0|0|0|6990|6,990|0|
+|0|0|0|0|0|6,990|6,990|0|
 
 ```
 # Check for rides that are longer than 24 hours, which are assumed to have been stolen or lost
+
 SELECT COUNT(*) AS longer_than_a_day
 FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`
 WHERE (TIMESTAMP_DIFF(ended_at, started_at, SECOND)) > 86400;
 ```
-<div class="alert alert-block alert-info">
-longer_than_a_day: 6,418
-</div>
+|longer_than_a_day|
+|-|
+|6,418|
 
 ```
 # Check for rides that are shorter than 1 second, which are obviously bad data
+
 SELECT COUNT(*) AS less_than_a_second
 FROM `cyclistic-case-study-422918.divvy_2023.tripdata_2023`
 WHERE (TIMESTAMP_DIFF(ended_at, started_at, SECOND)) < 1;
 ```
-<div class="alert alert-block alert-info">
-less_than_a_second: 1,269
-</div>
+|less_than_a_second|
+|-|
+|1,269|
 
-### So after exploring our data a bit, we have some cleaning to do. There are no duplicate ride IDs which is great, but there are 6990 rides without ending GPS information, which we will assume are bad data. There are also 6,418 rides that lasted longer than 24 hours and 1,269 rides that were less than a second long, so we must eliminate those rides as well. Some of the bad ride_length rides might overlap with the rides that have bad ending GPS information.
+### So after exploring our data a bit, we have some cleaning to do. There are no duplicate ride IDs which is great, but there are 6,990 rides without ending GPS information, which we will assume are bad data. There are also 6,418 rides that lasted longer than 24 hours and 1,269 rides that were less than a second long, so we must eliminate those rides as well. Some of the bad ride_length rides might overlap with the rides that have bad ending GPS information.
 
 # 4. Clean and transform data
 
@@ -170,10 +177,10 @@ CREATE TABLE IF NOT EXISTS `cyclistic-case-study-422918.divvy_2023.cleaned_tripd
 SELECT COUNT(*) AS total_rides
 FROM `cyclistic-case-study-422918.divvy_2023.cleaned_tripdata_2023`;
 ```
-<div class="alert alert-block alert-info">
-total_rides: 5,711,399
+|total_rides|
+|-|
+|5,711,399|
 8,478 rows removed
-</div>
 
 # 4. Analyze data
 
@@ -199,28 +206,29 @@ ORDER BY member_casual;
 #### Next, we'll dive deeper into that data by comparing the number of rides as well as the average length of rides taken by customer type AND day of the week.
 
 ```
-# Aggregate the average length and number of rides by the day of the week as well as by the customer type and then sort by weekday
+# Aggregate the average length and number of rides by the day of the week and by the customer type
+
 SELECT day_of_week, member_casual, COUNT(ride_id) AS total_trips, ROUND(AVG(ride_length)) AS average_ride_length
 FROM `cyclistic-case-study-422918.divvy_2023.cleaned_tripdata_2023`
 GROUP BY day_of_week, member_casual
-ORDER BY day_of_week, member_casual;
+ORDER BY day_of_week, member_casual; -- sort by weekday
 ```
 |day_of_week|member_casual|total_trips|average_ride_length|
 |-|-|-|-|
-|1|casual|334393|1434.0|
-|1|member|408612|806.0|
-|2|casual|234118|1213.0|
-|2|member|494328|687.0|
-|3|casual|245529|1102.0|
-|3|member|576459|695.0|
-|4|casual|248479|1055.0|
-|4|member|586189|690.0|
-|5|casual|269828|1075.0|
-|5|member|589309|694.0|
-|6|casual|310965|1195.0|
-|6|member|531327|719.0|
-|7|casual|409275|1393.0|
-|7|member|472588|804.0|
+|1|casual|334,393|1434.0|
+|1|member|408,612|806.0|
+|2|casual|234,118|1213.0|
+|2|member|494,328|687.0|
+|3|casual|245,529|1102.0|
+|3|member|576,459|695.0|
+|4|casual|248,479|1055.0|
+|4|member|586,189|690.0|
+|5|casual|269,828|1075.0|
+|5|member|589,309|694.0|
+|6|casual|310,965|1195.0|
+|6|member|531,327|719.0|
+|7|casual|409,275|1393.0|
+|7|member|472,588|804.0|
 
 #### It looks like casual riders tend to ride more often on weekends, while annual members tend to see ride usage spike in the middle of the week. Diving deeper into the data, we can make several more observations:
 
@@ -232,9 +240,9 @@ We can also see that **annual members** spend a fairly similar amount of time pe
 
 # 5. Tableau Visualizations
 
-Now that we've migrated our data to Tableau, we can create cleaner and more descriptive visualizations. I've compiled all of the above viz data into an interactive [dashboard](https://public.tableau.com/app/profile/joshua.mercado2815/viz/CyclisticCaseStudy_17138915127790/CyclisticBikeshareDatabyCustomerType2023) that allows users to highlight the data by customer type:
+Now that we've migrated our data to Tableau, we can create cleaner and more descriptive visualizations. I've compiled all of the viz data into an interactive [dashboard](https://public.tableau.com/app/profile/joshua.mercado2815/viz/CyclisticCaseStudy_17138915127790/CyclisticBikeshareDatabyCustomerType2023) that allows users to highlight the data by customer type:
 
-<div class='tableauPlaceholder' id='viz1715283208917' style='position: relative'><noscript><a href='#'><img alt='Cyclistic Bikeshare Data by Customer Type 2023 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /><param name='filter' value='publish=yes' /></object></div>                <script type='text/javascript'>                    var divElement = document.getElementById('viz1715283208917');                    var vizElement = divElement.getElementsByTagName('object')[0];                    if ( divElement.offsetWidth > 800 ) { vizElement.style.width='800px';vizElement.style.height='827px';} else if ( divElement.offsetWidth > 500 ) { vizElement.style.width='800px';vizElement.style.height='827px';} else { vizElement.style.width='100%';vizElement.style.height='1827px';}                     var scriptElement = document.createElement('script');                    scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    vizElement.parentNode.insertBefore(scriptElement, vizElement);                </script>
+<div class='tableauPlaceholder' id='viz1715283208917' style='position: relative'><noscript><a href='#'><img alt='Cyclistic Bikeshare Data by Customer Type 2023 ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Cy&#47;CyclisticCaseStudy_17138915127790&#47;CyclisticBikeshareDatabyCustomerType2023&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /><param name='filter' value='publish=yes' /></object></div>
 
 ## Key Metrics: Total Rides, Average Ride Length, and Total Ride Length
 
@@ -246,7 +254,7 @@ While the map is slightly cluttered due to the density of docking stations, we c
 
 ## Daily Rides and Average Daily Ride Length
 
-These are the same visualizations that we created in RStudio earlier, recreated here for a complete picture.
+These are the visualizations of the last query results from step 4, recreated here for a complete picture.
 
 ## Hourly Rides and Hourly Ride Lengths on **weekends**
 
@@ -275,7 +283,11 @@ The hourly data from weekdays shows extremely clear peaks during the traditional
 
 **Why would casual riders buy Cyclistic annual memberships?**
 
-The easier question to ask is why wouldn't a casual rider buy a Cyclistic annual membership? The simple answer is value. We can infer that many casual rides are taken by tourists or infrequent sightseers, and are therefore very unlikely to glean value from an annual membership. The casual riders that would make up the target segment for annual memberships are customers whose behavior mimics all or even part of the behavior of annual members: purpose driven, frequent rides between regular docking stations, including frequent rides during peak commuting times. Without individual user data, it is hard for me to identify that customer segment, but if I were working for the real life company with access to that data, then it would be a simple matter of isolating the top percentage of casual riders that match any aspect of that behavior.
+The easier question to ask is why wouldn't a casual rider buy a Cyclistic annual membership? The simple answer is value. We can infer that many casual rides are taken by tourists or infrequent sightseers, and are therefore very unlikely to glean value from an annual membership. 
+
+The casual riders that would make up the target segment for annual memberships are customers whose behavior mimics all or even part of the behavior of annual members: purpose driven, frequent rides between regular docking stations, including frequent rides during peak commuting times.
+
+Without individual user data, it is hard to identify that customer segment, but if I were working for the real life company with access to that data, then it would be a simple matter of isolating the top percentage of casual riders that match any aspect of that behavior.
 
 **How can Cyclistic use digital media to influence casual riders to become members?**
 
@@ -288,4 +300,3 @@ Digital media is an incredibly powerful marketing tool when combined with high l
 * considering me for a job position (thank you again for your time and consideration)
 * my mom, incredibly proud of her son's work (whether it be macaroni art or data analysis)
 * super interested in Chicago bikeshare data and/or data cleaning! (cool!)
-
