@@ -227,6 +227,10 @@ cyclistic_tripdata_2023 %>%
   ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
   geom_col(position = "dodge")
 ```
+![Rplot001](https://github.com/jfmercado/Cyclistic/assets/25253461/bf19119b-f456-4858-8855-76f0cc9b1682)
+![Rplot002](https://github.com/jfmercado/Cyclistic/assets/25253461/32669490-a688-4ebc-962f-bc3b870ef760)
+
+
 
 ### From the graph, we can make several more observations:
 
